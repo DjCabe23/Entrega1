@@ -3,69 +3,83 @@ const fs = require('fs');
 import { Router } from "express";
 const ProductsRouter = Router();
 
-let manager = new ProductManager;
 
-ProductsRouter.get("/", async (req, res)=>{
-    let limit = req.query.limit
-    let page = req.query.page
-    let sort = req.query.sort
-    let category = req.query.category
-    let products = []
-    try {
-        products = await manager.getProducts(limit,page,sort,category)
-    } catch (error) {
-        res.status(400).send({status: "error", error})
-    }
-    res.send({status:"success", payload: products})
-})
+const productsRouter = express.Router();
+app.use('/api/products', productsRouter);
 
-ProductsRouter.get("/:pid", async (req, res)=>{
-    let pid = req.params.pid;
-    let product;
-    try {
-        product = await manager.getProductsById(pid)
-    } catch (error) {
-        res.status(400).send({status: "error", error})
-    }
-    res.send({status: "success", payload: product})
+const { addProduct, getProductById, updateProduct, deleteProduct } = require('./productManager');
+
+productsRouter.get('/', (req, res) => {
+
 });
 
-ProductsRouter.post("/", async (req, res)=>{
-    let product = req.body;
-    if (!product.title || !product.description || !product.code || !product.price || !product.stock || !product.category) {
-        return  res.status(400).send({status: "error", error})
-    }
-    try {
-        await manager.addProduct(product)
-    } catch (error) {
-        res.status(400).send({status: "error", error})
-    }
-    res.send({status: "success", msg: "Product Created!"})
+productsRouter.get('/:pid', (req, res) => {
+  const productId = req.params.pid;
+
 });
 
-ProductsRouter.put("/:pid", async (req, res) => {
-    let pid = req.params.pid;
-    let product = req.body;
-    if (!product.title || !product.description || !product.code || !product.price || !product.stock || !product.category) {
-        return  res.status(400).send({status: "error", error})
-    }
-    try {
-        await manager.updateProduct(pid, product)
-    } catch (error) {
-        res.status(400).send({status: "error", error})
-    }
-    res.send({status: "success", msg: "Product Updated!"})
+productsRouter.post('/', (req, res) => {
+  const {
+    id,
+    title,
+    description,
+    code,
+    price,
+    stock,
+    category,
+    thumbnails
+  } = req.body;
+
+
+  if (!id || !title || !description || !code || !price || !stock || !category || !thumbnails) {
+    return res.status(400).json({ error: 'Todos los campos son obligatorios.' });
+  }
+
+ 
+  const newProduct = {
+    id,
+    title,
+    description,
+    code,
+    price,
+    status: true, 
+    stock,
+    category,
+    thumbnails
+  };
+
+
+  const addedProduct = addProduct(newProduct);
+
+
+  res.status(201).json(addedProduct);
 });
 
-ProductsRouter.delete("/:pid", async(req, res)=>{
-    let pid = req.params.pid;
-    let productDelete; 
-    try {
-        productDelete = await manager.deleteProduct(pid);
-    } catch (error) {
-        res.status(400).send({ status: "error", msg: "Product cannot be deleted!" })
-    }
-    res.send({ status: "success", msg: "Product deleted"})
-})
+productsRouter.put('/:pid', (req, res) => {
+  const productId = req.params.pid;
+  const updatedFields = req.body;
 
+
+  const updatedProduct = updateProduct(productId, updatedFields);
+
+  if (!updatedProduct) {
+    return res.status(404).json({ error: 'Producto no encontrado.' });
+  }
+
+
+  res.json(updatedProduct);
+});
+
+productsRouter.delete('/:pid', (req, res) => {
+  const productId = req.params.pid;
+
+
+  const deletedProduct = deleteProduct(productId);
+
+  if (!deletedProduct) {
+    return res.status(404).json({ error: 'Producto no encontrado.' });
+  }
+
+  res.json(deletedProduct);
+});
 export default ProductsRouter;
